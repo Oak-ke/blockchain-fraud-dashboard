@@ -1,0 +1,626 @@
+<!DOCTYPE html><html><head><title>Compliance Dashboard</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 20px; font-family: 'Inter', sans-serif; min-height: 100vh; }
+    .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 20px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); margin-bottom: 20px; }
+</style></head><body>
+<div class="container-fluid"><h2 class="mb-4 fw-bold">Network Topology & Risk Engine</h2>
+<div class="row"><div class="col-lg-7"><div class="glass-card"><h4>Entity Graph</h4>
+<p class="text-muted small">Scroll to zoom. Drag to move. Filter by class using the menu. Top 10 High-Risk hubs highlighted in distinct red.</p>
+<iframe srcdoc="&lt;html&gt;
+    &lt;head&gt;
+        &lt;meta charset=&quot;utf-8&quot;&gt;
+        
+            &lt;script&gt;function neighbourhoodHighlight(params) {
+  // console.log(&quot;in nieghbourhoodhighlight&quot;);
+  allNodes = nodes.get({ returnType: &quot;Object&quot; });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length &gt; 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = &quot;rgba(200,200,200,0.5)&quot;;
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i &lt; degrees; i++) {
+      for (j = 0; j &lt; connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i &lt; allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = &quot;pink&quot;;
+      allNodes[allConnectedNodes[i]].color = &quot;rgba(150,150,150,0.75)&quot;;
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i &lt; connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log(&quot;highlightActive was true&quot;);
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = &quot;purple&quot;;
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length &gt; 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log(&quot;Nothing was selected&quot;);
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: &quot;Object&quot; });
+  // if something is selected:
+  if (params.nodes.length &gt; 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i &lt; selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length &gt; 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter[&#x27;property&#x27;]
+  if (filter[&#x27;item&#x27;] === &#x27;node&#x27;) {
+    let allNodes = nodes.get({ returnType: &quot;Object&quot; });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] &amp;&amp; filter[&#x27;value&#x27;].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter[&#x27;item&#x27;] === &#x27;edge&#x27;){
+    let allEdges = edges.get({returnType: &#x27;object&#x27;});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] &amp;&amp; filter[&#x27;value&#x27;].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge][&#x27;from&#x27;])
+        selectedNodes.push(allEdges[edge][&#x27;to&#x27;])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}&lt;/script&gt;
+            &lt;link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css&quot; integrity=&quot;sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==&quot; crossorigin=&quot;anonymous&quot; referrerpolicy=&quot;no-referrer&quot; /&gt;
+            &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js&quot; integrity=&quot;sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==&quot; crossorigin=&quot;anonymous&quot; referrerpolicy=&quot;no-referrer&quot;&gt;&lt;/script&gt;
+            
+            
+            
+            
+            
+            
+                &lt;link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css&quot; integrity=&quot;sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==&quot; crossorigin=&quot;anonymous&quot; referrerpolicy=&quot;no-referrer&quot; /&gt;
+                &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js&quot; integrity=&quot;sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==&quot; crossorigin=&quot;anonymous&quot; referrerpolicy=&quot;no-referrer&quot;&gt;&lt;/script&gt;
+            
+
+        
+&lt;center&gt;
+&lt;h1&gt;&lt;/h1&gt;
+&lt;/center&gt;
+
+&lt;!-- &lt;link rel=&quot;stylesheet&quot; href=&quot;../node_modules/vis/dist/vis.min.css&quot; type=&quot;text/css&quot; /&gt;
+&lt;script type=&quot;text/javascript&quot; src=&quot;../node_modules/vis/dist/vis.js&quot;&gt; &lt;/script&gt;--&gt;
+        &lt;link
+          href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css&quot;
+          rel=&quot;stylesheet&quot;
+          integrity=&quot;sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6&quot;
+          crossorigin=&quot;anonymous&quot;
+        /&gt;
+        &lt;script
+          src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js&quot;
+          integrity=&quot;sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf&quot;
+          crossorigin=&quot;anonymous&quot;
+        &gt;&lt;/script&gt;
+
+
+        &lt;center&gt;
+          &lt;h1&gt;&lt;/h1&gt;
+        &lt;/center&gt;
+        &lt;style type=&quot;text/css&quot;&gt;
+
+             #mynetwork {
+                 width: 100%;
+                 height: 500px;
+                 background-color: #1e293b;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 500px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr=&#x27;#fcfcfc&#x27;, endColorstr=&#x27;#ededed&#x27;,GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        &lt;/style&gt;
+    &lt;/head&gt;
+
+
+    &lt;body&gt;
+        &lt;div class=&quot;card&quot; style=&quot;width: 100%&quot;&gt;
+            
+            
+              &lt;div id=&quot;filter-menu&quot; class=&quot;card-header&quot;&gt;
+                &lt;div class=&quot;row no-gutters&quot;&gt;
+                  &lt;div class=&quot;col-3 pb-2&quot;&gt;
+                    &lt;select
+                            class=&quot;form-select&quot;
+                            aria-label=&quot;Default select example&quot;
+                            onchange=&quot;updateFilter(value, &#x27;item&#x27;)&quot;
+                            id=&quot;select-item&quot;
+                        &gt;
+                        &lt;option value=&quot;&quot;&gt;Select a network item&lt;/option&gt;
+                        &lt;option value=&quot;edge&quot;&gt;edge&lt;/option&gt;
+                        &lt;option value=&quot;node&quot;&gt;node&lt;/option&gt;
+                    &lt;/select&gt;
+                  &lt;/div&gt;
+                  &lt;div class=&quot;col-3 pb-2&quot;&gt;
+                    &lt;select
+                            class=&quot;form-select&quot;
+                            aria-label=&quot;Default select example&quot;
+                            onchange=&quot;updateFilter(value, &#x27;property&#x27;)&quot;
+                            id=&quot;select-property&quot;
+                        &gt;
+                        &lt;option value=&quot;&quot;&gt;Select a property...&lt;/option&gt;
+                    &lt;/select&gt;
+                  &lt;/div&gt;
+                  &lt;div class=&quot;col-3 pb-2&quot;&gt;
+                    &lt;select
+                            class=&quot;form-select&quot;
+                            aria-label=&quot;Default select example&quot;
+                            id=&quot;select-value&quot;
+                        &gt;
+                        &lt;option value=&quot;&quot;&gt;Select value(s)...&lt;/option&gt;
+                    &lt;/select&gt;
+                  &lt;/div&gt;
+                  &lt;div class=&quot;col-1 pb-2&quot;&gt;
+                    &lt;button type=&quot;button&quot; class=&quot;btn btn-primary btn-block&quot; onclick=&quot;highlightFilter(filter);&quot;&gt;Filter&lt;/button&gt;
+                  &lt;/div&gt;
+                  &lt;div class=&quot;col-2 pb-2&quot;&gt;
+                    &lt;button type=&quot;button&quot; class=&quot;btn btn-primary btn-block&quot; onclick=&quot;clearFilter(true)&quot;&gt;Reset Selection&lt;/button&gt;
+                  &lt;/div&gt;
+                &lt;/div&gt;
+              &lt;/div&gt;
+            
+            &lt;div id=&quot;mynetwork&quot; class=&quot;card-body&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+
+        
+            &lt;div id=&quot;loadingBar&quot;&gt;
+              &lt;div class=&quot;outerBorder&quot;&gt;
+                &lt;div id=&quot;text&quot;&gt;0%&lt;/div&gt;
+                &lt;div id=&quot;border&quot;&gt;
+                  &lt;div id=&quot;bar&quot;&gt;&lt;/div&gt;
+                &lt;/div&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+        
+        
+
+        &lt;script type=&quot;text/javascript&quot;&gt;
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : &#x27;&#x27;,
+                  property : &#x27;&#x27;,
+                  value : []
+              };
+
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter[&#x27;value&#x27;].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect(&quot;#select-value&quot;,{
+                      maxItems: null,
+                      valueField: &#x27;id&#x27;,
+                      labelField: &#x27;title&#x27;,
+                      searchField: &#x27;title&#x27;,
+                      create: false,
+                      sortField: {
+                          field: &quot;text&quot;,
+                          direction: &quot;asc&quot;
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter[&#x27;value&#x27;] = []
+                          if (filter[&#x27;item&#x27;] === &#x27;node&#x27;) {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter[&#x27;item&#x27;] === &#x27;edge&#x27;) {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect(&quot;#select-property&quot;,{
+                      valueField: &#x27;id&#x27;,
+                      labelField: &#x27;title&#x27;,
+                      searchField: &#x27;title&#x27;,
+                      create: false,
+                      sortField: {
+                          field: &quot;text&quot;,
+                          direction: &quot;asc&quot;
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === &#x27;edge&#x27;) {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === &#x27;node&#x27;) {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              &amp;&amp; (eachProp !== &#x27;hidden&#x27; &amp;&amp; eachProp !== &#x27;savedLabel&#x27;
+                                                  &amp;&amp; eachProp !== &#x27;hiddenLabel&#x27;)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect(&quot;#select-item&quot;,{
+                      create: false,
+                      sortField:{
+                          field: &quot;text&quot;,
+                          direction: &quot;asc&quot;
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : &#x27;&#x27;,
+                          property : &#x27;&#x27;,
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be &#x27;item&#x27; or &#x27;property&#x27; and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById(&#x27;mynetwork&#x27;);
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;94733953&quot;, &quot;label&quot;: &quot;94733953&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98712708&quot;, &quot;label&quot;: &quot;98712708&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98719493&quot;, &quot;label&quot;: &quot;98719493&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;94733959&quot;, &quot;label&quot;: &quot;94733959&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#ef4444&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;94733964&quot;, &quot;label&quot;: &quot;94733964&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 30}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98710289&quot;, &quot;label&quot;: &quot;98710289&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98493205&quot;, &quot;label&quot;: &quot;98493205&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98710296&quot;, &quot;label&quot;: &quot;98710296&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#ef4444&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;94663332&quot;, &quot;label&quot;: &quot;94663332&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 30}, {&quot;color&quot;: &quot;#ef4444&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98711851&quot;, &quot;label&quot;: &quot;98711851&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 30}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98706351&quot;, &quot;label&quot;: &quot;98706351&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#ef4444&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98710965&quot;, &quot;label&quot;: &quot;98710965&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 30}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;96558778&quot;, &quot;label&quot;: &quot;96558778&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#ef4444&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;94732351&quot;, &quot;label&quot;: &quot;94732351&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 30}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98706373&quot;, &quot;label&quot;: &quot;98706373&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;94732107&quot;, &quot;label&quot;: &quot;94732107&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98717771&quot;, &quot;label&quot;: &quot;98717771&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;99228236&quot;, &quot;label&quot;: &quot;99228236&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;94663125&quot;, &quot;label&quot;: &quot;94663125&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98713046&quot;, &quot;label&quot;: &quot;98713046&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98718817&quot;, &quot;label&quot;: &quot;98718817&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98710244&quot;, &quot;label&quot;: &quot;98710244&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#ef4444&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98714597&quot;, &quot;label&quot;: &quot;98714597&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 30}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98713061&quot;, &quot;label&quot;: &quot;98713061&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#ef4444&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98715752&quot;, &quot;label&quot;: &quot;98715752&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 30}, {&quot;color&quot;: &quot;#ef4444&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;19946345&quot;, &quot;label&quot;: &quot;19946345&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 30}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98714477&quot;, &quot;label&quot;: &quot;98714477&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;94663152&quot;, &quot;label&quot;: &quot;94663152&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98718832&quot;, &quot;label&quot;: &quot;98718832&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98714484&quot;, &quot;label&quot;: &quot;98714484&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#ef4444&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98491252&quot;, &quot;label&quot;: &quot;98491252&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 30}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;339643360&quot;, &quot;label&quot;: &quot;339643360&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;145596519&quot;, &quot;label&quot;: &quot;145596519&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;339259982&quot;, &quot;label&quot;: &quot;339259982&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;138341394&quot;, &quot;label&quot;: &quot;138341394&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;102493400&quot;, &quot;label&quot;: &quot;102493400&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;145114685&quot;, &quot;label&quot;: &quot;145114685&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;363658273&quot;, &quot;label&quot;: &quot;363658273&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;363769554&quot;, &quot;label&quot;: &quot;363769554&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;363769558&quot;, &quot;label&quot;: &quot;363769558&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;156106172&quot;, &quot;label&quot;: &quot;156106172&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;156106772&quot;, &quot;label&quot;: &quot;156106772&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;144222669&quot;, &quot;label&quot;: &quot;144222669&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;156284727&quot;, &quot;label&quot;: &quot;156284727&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;210645281&quot;, &quot;label&quot;: &quot;210645281&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;210893894&quot;, &quot;label&quot;: &quot;210893894&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;209827599&quot;, &quot;label&quot;: &quot;209827599&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;209809718&quot;, &quot;label&quot;: &quot;209809718&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;209059864&quot;, &quot;label&quot;: &quot;209059864&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;209826974&quot;, &quot;label&quot;: &quot;209826974&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;234608609&quot;, &quot;label&quot;: &quot;234608609&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;234683266&quot;, &quot;label&quot;: &quot;234683266&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;234252357&quot;, &quot;label&quot;: &quot;234252357&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;32112680&quot;, &quot;label&quot;: &quot;32112680&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;20662346&quot;, &quot;label&quot;: &quot;20662346&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;234639355&quot;, &quot;label&quot;: &quot;234639355&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;42765601&quot;, &quot;label&quot;: &quot;42765601&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;42765610&quot;, &quot;label&quot;: &quot;42765610&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;48234540&quot;, &quot;label&quot;: &quot;48234540&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;12871556&quot;, &quot;label&quot;: &quot;12871556&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;97726579&quot;, &quot;label&quot;: &quot;97726579&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;96993332&quot;, &quot;label&quot;: &quot;96993332&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;383016669&quot;, &quot;label&quot;: &quot;383016669&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;379584572&quot;, &quot;label&quot;: &quot;379584572&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;386073093&quot;, &quot;label&quot;: &quot;386073093&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;104520543&quot;, &quot;label&quot;: &quot;104520543&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;225050687&quot;, &quot;label&quot;: &quot;225050687&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;175767619&quot;, &quot;label&quot;: &quot;175767619&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;360652576&quot;, &quot;label&quot;: &quot;360652576&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;374152000&quot;, &quot;label&quot;: &quot;374152000&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;382990657&quot;, &quot;label&quot;: &quot;382990657&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;376270499&quot;, &quot;label&quot;: &quot;376270499&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;330311650&quot;, &quot;label&quot;: &quot;330311650&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;383754027&quot;, &quot;label&quot;: &quot;383754027&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#ef4444&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;11272270&quot;, &quot;label&quot;: &quot;11272270&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 30}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;382965810&quot;, &quot;label&quot;: &quot;382965810&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;383001779&quot;, &quot;label&quot;: &quot;383001779&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;336956630&quot;, &quot;label&quot;: &quot;336956630&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;380211670&quot;, &quot;label&quot;: &quot;380211670&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;380214648&quot;, &quot;label&quot;: &quot;380214648&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;381089562&quot;, &quot;label&quot;: &quot;381089562&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;179568725&quot;, &quot;label&quot;: &quot;179568725&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;99843177&quot;, &quot;label&quot;: &quot;99843177&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;24746386&quot;, &quot;label&quot;: &quot;24746386&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;15466581&quot;, &quot;label&quot;: &quot;15466581&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;119472721&quot;, &quot;label&quot;: &quot;119472721&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;95551579&quot;, &quot;label&quot;: &quot;95551579&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;96349365&quot;, &quot;label&quot;: &quot;96349365&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;67633249&quot;, &quot;label&quot;: &quot;67633249&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;67633244&quot;, &quot;label&quot;: &quot;67633244&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;60686437&quot;, &quot;label&quot;: &quot;60686437&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;209824867&quot;, &quot;label&quot;: &quot;209824867&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;209715308&quot;, &quot;label&quot;: &quot;209715308&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;30293426&quot;, &quot;label&quot;: &quot;30293426&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;95551861&quot;, &quot;label&quot;: &quot;95551861&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;95551607&quot;, &quot;label&quot;: &quot;95551607&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;49938786&quot;, &quot;label&quot;: &quot;49938786&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;194379900&quot;, &quot;label&quot;: &quot;194379900&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;195498469&quot;, &quot;label&quot;: &quot;195498469&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;232061267&quot;, &quot;label&quot;: &quot;232061267&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;3408003&quot;, &quot;label&quot;: &quot;3408003&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;232046508&quot;, &quot;label&quot;: &quot;232046508&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;272629897&quot;, &quot;label&quot;: &quot;272629897&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;331783904&quot;, &quot;label&quot;: &quot;331783904&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;331624995&quot;, &quot;label&quot;: &quot;331624995&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;298359205&quot;, &quot;label&quot;: &quot;298359205&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;337396583&quot;, &quot;label&quot;: &quot;337396583&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;331560201&quot;, &quot;label&quot;: &quot;331560201&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;117178506&quot;, &quot;label&quot;: &quot;117178506&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;331559566&quot;, &quot;label&quot;: &quot;331559566&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;334322255&quot;, &quot;label&quot;: &quot;334322255&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;338717682&quot;, &quot;label&quot;: &quot;338717682&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#f87171&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;332771446&quot;, &quot;label&quot;: &quot;332771446&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;228736379&quot;, &quot;label&quot;: &quot;228736379&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;57098908&quot;, &quot;label&quot;: &quot;57098908&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#f87171&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;339662623&quot;, &quot;label&quot;: &quot;339662623&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98042002&quot;, &quot;label&quot;: &quot;98042002&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;363610942&quot;, &quot;label&quot;: &quot;363610942&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;363540762&quot;, &quot;label&quot;: &quot;363540762&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;236454046&quot;, &quot;label&quot;: &quot;236454046&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;390332584&quot;, &quot;label&quot;: &quot;390332584&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;390332578&quot;, &quot;label&quot;: &quot;390332578&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;356381234&quot;, &quot;label&quot;: &quot;356381234&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;390516106&quot;, &quot;label&quot;: &quot;390516106&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;98697383&quot;, &quot;label&quot;: &quot;98697383&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;390423284&quot;, &quot;label&quot;: &quot;390423284&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;339083440&quot;, &quot;label&quot;: &quot;339083440&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;97448650&quot;, &quot;label&quot;: &quot;97448650&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;339083565&quot;, &quot;label&quot;: &quot;339083565&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;363682080&quot;, &quot;label&quot;: &quot;363682080&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;222822577&quot;, &quot;label&quot;: &quot;222822577&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;173932722&quot;, &quot;label&quot;: &quot;173932722&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;142148757&quot;, &quot;label&quot;: &quot;142148757&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;243647436&quot;, &quot;label&quot;: &quot;243647436&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;312869044&quot;, &quot;label&quot;: &quot;312869044&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;202506424&quot;, &quot;label&quot;: &quot;202506424&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;156421113&quot;, &quot;label&quot;: &quot;156421113&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;155759667&quot;, &quot;label&quot;: &quot;155759667&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;164757692&quot;, &quot;label&quot;: &quot;164757692&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;121801457&quot;, &quot;label&quot;: &quot;121801457&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;121801433&quot;, &quot;label&quot;: &quot;121801433&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;121372870&quot;, &quot;label&quot;: &quot;121372870&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;73269449&quot;, &quot;label&quot;: &quot;73269449&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;94302457&quot;, &quot;label&quot;: &quot;94302457&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;94109898&quot;, &quot;label&quot;: &quot;94109898&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;96013075&quot;, &quot;label&quot;: &quot;96013075&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;272486240&quot;, &quot;label&quot;: &quot;272486240&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;272339840&quot;, &quot;label&quot;: &quot;272339840&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;72876240&quot;, &quot;label&quot;: &quot;72876240&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;272536820&quot;, &quot;label&quot;: &quot;272536820&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;272486232&quot;, &quot;label&quot;: &quot;272486232&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;106430683&quot;, &quot;label&quot;: &quot;106430683&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;106872764&quot;, &quot;label&quot;: &quot;106872764&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;106441957&quot;, &quot;label&quot;: &quot;106441957&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;8940091&quot;, &quot;label&quot;: &quot;8940091&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;8913105&quot;, &quot;label&quot;: &quot;8913105&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;8913115&quot;, &quot;label&quot;: &quot;8913115&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;121657231&quot;, &quot;label&quot;: &quot;121657231&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;35651812&quot;, &quot;label&quot;: &quot;35651812&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;43464822&quot;, &quot;label&quot;: &quot;43464822&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;38463881&quot;, &quot;label&quot;: &quot;38463881&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;72614123&quot;, &quot;label&quot;: &quot;72614123&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;72614133&quot;, &quot;label&quot;: &quot;72614133&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;313104156&quot;, &quot;label&quot;: &quot;313104156&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;310509805&quot;, &quot;label&quot;: &quot;310509805&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;310509799&quot;, &quot;label&quot;: &quot;310509799&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;12710440&quot;, &quot;label&quot;: &quot;12710440&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;13238521&quot;, &quot;label&quot;: &quot;13238521&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;12676683&quot;, &quot;label&quot;: &quot;12676683&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;12676687&quot;, &quot;label&quot;: &quot;12676687&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;50451418&quot;, &quot;label&quot;: &quot;50451418&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;49938692&quot;, &quot;label&quot;: &quot;49938692&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;69861637&quot;, &quot;label&quot;: &quot;69861637&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;200640014&quot;, &quot;label&quot;: &quot;200640014&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;26276695&quot;, &quot;label&quot;: &quot;26276695&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;352073065&quot;, &quot;label&quot;: &quot;352073065&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;306512979&quot;, &quot;label&quot;: &quot;306512979&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#4ade80&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;178121686&quot;, &quot;label&quot;: &quot;178121686&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;363069702&quot;, &quot;label&quot;: &quot;363069702&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;363604929&quot;, &quot;label&quot;: &quot;363604929&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#f87171&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;363663205&quot;, &quot;label&quot;: &quot;363663205&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;363773543&quot;, &quot;label&quot;: &quot;363773543&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;219094957&quot;, &quot;label&quot;: &quot;219094957&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;363331868&quot;, &quot;label&quot;: &quot;363331868&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;75497760&quot;, &quot;label&quot;: &quot;75497760&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;78634913&quot;, &quot;label&quot;: &quot;78634913&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;121507150&quot;, &quot;label&quot;: &quot;121507150&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;179150578&quot;, &quot;label&quot;: &quot;179150578&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;116479363&quot;, &quot;label&quot;: &quot;116479363&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}, {&quot;color&quot;: &quot;#94a3b8&quot;, &quot;font&quot;: {&quot;color&quot;: &quot;white&quot;}, &quot;id&quot;: &quot;178913573&quot;, &quot;label&quot;: &quot;178913573&quot;, &quot;shape&quot;: &quot;dot&quot;, &quot;size&quot;: 10}]);
+                  edges = new vis.DataSet([{&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94733953&quot;, &quot;to&quot;: &quot;19946345&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94733953&quot;, &quot;to&quot;: &quot;94732107&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94733953&quot;, &quot;to&quot;: &quot;94733964&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94733953&quot;, &quot;to&quot;: &quot;98710965&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94733953&quot;, &quot;to&quot;: &quot;98711851&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94733964&quot;, &quot;to&quot;: &quot;98714477&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94733964&quot;, &quot;to&quot;: &quot;98714597&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94733964&quot;, &quot;to&quot;: &quot;98715752&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94733964&quot;, &quot;to&quot;: &quot;98717771&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94733964&quot;, &quot;to&quot;: &quot;98718832&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98493205&quot;, &quot;to&quot;: &quot;94733953&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98493205&quot;, &quot;to&quot;: &quot;98710296&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98493205&quot;, &quot;to&quot;: &quot;98710965&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98493205&quot;, &quot;to&quot;: &quot;98714477&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663332&quot;, &quot;to&quot;: &quot;19946345&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663332&quot;, &quot;to&quot;: &quot;94663125&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663332&quot;, &quot;to&quot;: &quot;94663152&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663332&quot;, &quot;to&quot;: &quot;94733953&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663332&quot;, &quot;to&quot;: &quot;98493205&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663332&quot;, &quot;to&quot;: &quot;98706351&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663332&quot;, &quot;to&quot;: &quot;98710965&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663332&quot;, &quot;to&quot;: &quot;98715752&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98711851&quot;, &quot;to&quot;: &quot;94733964&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98711851&quot;, &quot;to&quot;: &quot;98491252&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98711851&quot;, &quot;to&quot;: &quot;98712708&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98711851&quot;, &quot;to&quot;: &quot;98714597&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98711851&quot;, &quot;to&quot;: &quot;98715752&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98711851&quot;, &quot;to&quot;: &quot;98719493&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98710965&quot;, &quot;to&quot;: &quot;94733959&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98710965&quot;, &quot;to&quot;: &quot;98491252&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98710965&quot;, &quot;to&quot;: &quot;98717771&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98710965&quot;, &quot;to&quot;: &quot;98718832&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98710965&quot;, &quot;to&quot;: &quot;99228236&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;96558778&quot;, &quot;to&quot;: &quot;19946345&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;96558778&quot;, &quot;to&quot;: &quot;94663332&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;96558778&quot;, &quot;to&quot;: &quot;94732351&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;96558778&quot;, &quot;to&quot;: &quot;98706351&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;96558778&quot;, &quot;to&quot;: &quot;98711851&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;96558778&quot;, &quot;to&quot;: &quot;98714484&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;96558778&quot;, &quot;to&quot;: &quot;98715752&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94732351&quot;, &quot;to&quot;: &quot;94663152&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94732351&quot;, &quot;to&quot;: &quot;94663332&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94732351&quot;, &quot;to&quot;: &quot;98706373&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94732351&quot;, &quot;to&quot;: &quot;98710244&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94732351&quot;, &quot;to&quot;: &quot;98712708&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94732351&quot;, &quot;to&quot;: &quot;98713046&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94732351&quot;, &quot;to&quot;: &quot;98713061&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94732351&quot;, &quot;to&quot;: &quot;98718817&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98717771&quot;, &quot;to&quot;: &quot;98718817&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663125&quot;, &quot;to&quot;: &quot;94733953&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663125&quot;, &quot;to&quot;: &quot;94733964&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663125&quot;, &quot;to&quot;: &quot;98493205&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663125&quot;, &quot;to&quot;: &quot;98706373&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663125&quot;, &quot;to&quot;: &quot;98714597&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98713046&quot;, &quot;to&quot;: &quot;98491252&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98710244&quot;, &quot;to&quot;: &quot;19946345&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98714597&quot;, &quot;to&quot;: &quot;98715752&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98714597&quot;, &quot;to&quot;: &quot;98717771&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98714597&quot;, &quot;to&quot;: &quot;98718832&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98715752&quot;, &quot;to&quot;: &quot;94732107&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98715752&quot;, &quot;to&quot;: &quot;94733959&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98715752&quot;, &quot;to&quot;: &quot;98717771&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98715752&quot;, &quot;to&quot;: &quot;98718832&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98715752&quot;, &quot;to&quot;: &quot;99228236&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;19946345&quot;, &quot;to&quot;: &quot;94733964&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;19946345&quot;, &quot;to&quot;: &quot;98491252&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;19946345&quot;, &quot;to&quot;: &quot;98710289&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;19946345&quot;, &quot;to&quot;: &quot;98710296&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;19946345&quot;, &quot;to&quot;: &quot;98710965&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;19946345&quot;, &quot;to&quot;: &quot;98711851&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;19946345&quot;, &quot;to&quot;: &quot;98714597&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663152&quot;, &quot;to&quot;: &quot;94663125&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663152&quot;, &quot;to&quot;: &quot;94733959&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663152&quot;, &quot;to&quot;: &quot;98493205&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663152&quot;, &quot;to&quot;: &quot;98710289&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663152&quot;, &quot;to&quot;: &quot;98714597&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94663152&quot;, &quot;to&quot;: &quot;98718817&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98718832&quot;, &quot;to&quot;: &quot;98719493&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98714484&quot;, &quot;to&quot;: &quot;98714477&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98714484&quot;, &quot;to&quot;: &quot;98714597&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98491252&quot;, &quot;to&quot;: &quot;94733959&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98491252&quot;, &quot;to&quot;: &quot;94733964&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98491252&quot;, &quot;to&quot;: &quot;98713061&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;98491252&quot;, &quot;to&quot;: &quot;98714597&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;145596519&quot;, &quot;to&quot;: &quot;138341394&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;145596519&quot;, &quot;to&quot;: &quot;339643360&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;145114685&quot;, &quot;to&quot;: &quot;102493400&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;145114685&quot;, &quot;to&quot;: &quot;145596519&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;145114685&quot;, &quot;to&quot;: &quot;339259982&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;363658273&quot;, &quot;to&quot;: &quot;363769554&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;363769554&quot;, &quot;to&quot;: &quot;363769558&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;156106172&quot;, &quot;to&quot;: &quot;144222669&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;156106772&quot;, &quot;to&quot;: &quot;156106172&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;156106772&quot;, &quot;to&quot;: &quot;156284727&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;209827599&quot;, &quot;to&quot;: &quot;209826974&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;209827599&quot;, &quot;to&quot;: &quot;210893894&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;209809718&quot;, &quot;to&quot;: &quot;210645281&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;209059864&quot;, &quot;to&quot;: &quot;209809718&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;209059864&quot;, &quot;to&quot;: &quot;209827599&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;234252357&quot;, &quot;to&quot;: &quot;20662346&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;32112680&quot;, &quot;to&quot;: &quot;234252357&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;32112680&quot;, &quot;to&quot;: &quot;234639355&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;234639355&quot;, &quot;to&quot;: &quot;234608609&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;234639355&quot;, &quot;to&quot;: &quot;234683266&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;42765610&quot;, &quot;to&quot;: &quot;42765601&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;48234540&quot;, &quot;to&quot;: &quot;42765610&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;12871556&quot;, &quot;to&quot;: &quot;97726579&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;96993332&quot;, &quot;to&quot;: &quot;12871556&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;379584572&quot;, &quot;to&quot;: &quot;386073093&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;386073093&quot;, &quot;to&quot;: &quot;383016669&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;225050687&quot;, &quot;to&quot;: &quot;104520543&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;11272270&quot;, &quot;to&quot;: &quot;336956630&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;11272270&quot;, &quot;to&quot;: &quot;360652576&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;11272270&quot;, &quot;to&quot;: &quot;374152000&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;11272270&quot;, &quot;to&quot;: &quot;376270499&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;11272270&quot;, &quot;to&quot;: &quot;380211670&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;11272270&quot;, &quot;to&quot;: &quot;380214648&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;11272270&quot;, &quot;to&quot;: &quot;381089562&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;11272270&quot;, &quot;to&quot;: &quot;382965810&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;11272270&quot;, &quot;to&quot;: &quot;382990657&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;11272270&quot;, &quot;to&quot;: &quot;383001779&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;11272270&quot;, &quot;to&quot;: &quot;383754027&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;383001779&quot;, &quot;to&quot;: &quot;330311650&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;99843177&quot;, &quot;to&quot;: &quot;24746386&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;15466581&quot;, &quot;to&quot;: &quot;99843177&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;119472721&quot;, &quot;to&quot;: &quot;96349365&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;95551579&quot;, &quot;to&quot;: &quot;119472721&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;67633249&quot;, &quot;to&quot;: &quot;67633244&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;209715308&quot;, &quot;to&quot;: &quot;209824867&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;30293426&quot;, &quot;to&quot;: &quot;95551861&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;95551607&quot;, &quot;to&quot;: &quot;30293426&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;194379900&quot;, &quot;to&quot;: &quot;195498469&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;195498469&quot;, &quot;to&quot;: &quot;49938786&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;3408003&quot;, &quot;to&quot;: &quot;232046508&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;232046508&quot;, &quot;to&quot;: &quot;232061267&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;117178506&quot;, &quot;to&quot;: &quot;228736379&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;117178506&quot;, &quot;to&quot;: &quot;331559566&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;117178506&quot;, &quot;to&quot;: &quot;332771446&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;117178506&quot;, &quot;to&quot;: &quot;334322255&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;117178506&quot;, &quot;to&quot;: &quot;337396583&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;228736379&quot;, &quot;to&quot;: &quot;57098908&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;228736379&quot;, &quot;to&quot;: &quot;298359205&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;228736379&quot;, &quot;to&quot;: &quot;331560201&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;228736379&quot;, &quot;to&quot;: &quot;331624995&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;228736379&quot;, &quot;to&quot;: &quot;331783904&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;228736379&quot;, &quot;to&quot;: &quot;338717682&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;228736379&quot;, &quot;to&quot;: &quot;339662623&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;363540762&quot;, &quot;to&quot;: &quot;363610942&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;236454046&quot;, &quot;to&quot;: &quot;363540762&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;390332584&quot;, &quot;to&quot;: &quot;356381234&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;390332578&quot;, &quot;to&quot;: &quot;390332584&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;390332578&quot;, &quot;to&quot;: &quot;390516106&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;356381234&quot;, &quot;to&quot;: &quot;390423284&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;339083440&quot;, &quot;to&quot;: &quot;97448650&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;97448650&quot;, &quot;to&quot;: &quot;339083565&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;222822577&quot;, &quot;to&quot;: &quot;363682080&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;173932722&quot;, &quot;to&quot;: &quot;142148757&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;312869044&quot;, &quot;to&quot;: &quot;243647436&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;156421113&quot;, &quot;to&quot;: &quot;155759667&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;164757692&quot;, &quot;to&quot;: &quot;156421113&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;121801457&quot;, &quot;to&quot;: &quot;121801433&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;121372870&quot;, &quot;to&quot;: &quot;121801457&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;94109898&quot;, &quot;to&quot;: &quot;96013075&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;96013075&quot;, &quot;to&quot;: &quot;94302457&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;272486240&quot;, &quot;to&quot;: &quot;272486232&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;272339840&quot;, &quot;to&quot;: &quot;272536820&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;72876240&quot;, &quot;to&quot;: &quot;272339840&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;72876240&quot;, &quot;to&quot;: &quot;272486240&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;106430683&quot;, &quot;to&quot;: &quot;106441957&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;106441957&quot;, &quot;to&quot;: &quot;106872764&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;8940091&quot;, &quot;to&quot;: &quot;121657231&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;8913115&quot;, &quot;to&quot;: &quot;8913105&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;8913115&quot;, &quot;to&quot;: &quot;8940091&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;35651812&quot;, &quot;to&quot;: &quot;43464822&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;38463881&quot;, &quot;to&quot;: &quot;72614133&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;72614123&quot;, &quot;to&quot;: &quot;38463881&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;310509805&quot;, &quot;to&quot;: &quot;310509799&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;310509799&quot;, &quot;to&quot;: &quot;313104156&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;13238521&quot;, &quot;to&quot;: &quot;12676687&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;12676687&quot;, &quot;to&quot;: &quot;12676683&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;12676687&quot;, &quot;to&quot;: &quot;12710440&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;49938692&quot;, &quot;to&quot;: &quot;50451418&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;69861637&quot;, &quot;to&quot;: &quot;26276695&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;26276695&quot;, &quot;to&quot;: &quot;200640014&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;352073065&quot;, &quot;to&quot;: &quot;306512979&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;363069702&quot;, &quot;to&quot;: &quot;178121686&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;363069702&quot;, &quot;to&quot;: &quot;352073065&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;363663205&quot;, &quot;to&quot;: &quot;363773543&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;219094957&quot;, &quot;to&quot;: &quot;363604929&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;363331868&quot;, &quot;to&quot;: &quot;219094957&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;363331868&quot;, &quot;to&quot;: &quot;363663205&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;75497760&quot;, &quot;to&quot;: &quot;121507150&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;121507150&quot;, &quot;to&quot;: &quot;78634913&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;179150578&quot;, &quot;to&quot;: &quot;116479363&quot;}, {&quot;color&quot;: &quot;#555555&quot;, &quot;from&quot;: &quot;178913573&quot;, &quot;to&quot;: &quot;179150578&quot;}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: &quot;Object&quot; });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: &quot;Object&quot; });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    &quot;configure&quot;: {
+        &quot;enabled&quot;: false
+    },
+    &quot;edges&quot;: {
+        &quot;color&quot;: {
+            &quot;inherit&quot;: true
+        },
+        &quot;smooth&quot;: {
+            &quot;enabled&quot;: true,
+            &quot;type&quot;: &quot;dynamic&quot;
+        }
+    },
+    &quot;interaction&quot;: {
+        &quot;dragNodes&quot;: true,
+        &quot;hideEdgesOnDrag&quot;: false,
+        &quot;hideNodesOnDrag&quot;: false
+    },
+    &quot;physics&quot;: {
+        &quot;enabled&quot;: true,
+        &quot;stabilization&quot;: {
+            &quot;enabled&quot;: true,
+            &quot;fit&quot;: true,
+            &quot;iterations&quot;: 1000,
+            &quot;onlyDynamicEdges&quot;: false,
+            &quot;updateInterval&quot;: 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+                      network.on(&quot;stabilizationProgress&quot;, function(params) {
+                          document.getElementById(&#x27;loadingBar&#x27;).removeAttribute(&quot;style&quot;);
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById(&#x27;bar&#x27;).style.width = width + &#x27;px&#x27;;
+                          document.getElementById(&#x27;text&#x27;).innerHTML = Math.round(widthFactor*100) + &#x27;%&#x27;;
+                      });
+                      network.once(&quot;stabilizationIterationsDone&quot;, function() {
+                          document.getElementById(&#x27;text&#x27;).innerHTML = &#x27;100%&#x27;;
+                          document.getElementById(&#x27;bar&#x27;).style.width = &#x27;496px&#x27;;
+                          document.getElementById(&#x27;loadingBar&#x27;).style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById(&#x27;loadingBar&#x27;).style.display = &#x27;none&#x27;;}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        &lt;/script&gt;
+    &lt;/body&gt;
+&lt;/html&gt;" width="100%" height="500px" style="border:none;"></iframe></div></div>
+<div class="col-lg-5"><div class="glass-card"><div>                        <script type="text/javascript">window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>                <div id="bc0d9181-7551-4742-bdd7-b916248d1c75" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script type="text/javascript">                                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("bc0d9181-7551-4742-bdd7-b916248d1c75")) {                    Plotly.newPlot(                        "bc0d9181-7551-4742-bdd7-b916248d1c75",                        [{"alignmentgroup":"True","hovertemplate":"class=unknown\u003cbr\u003etxId=%{x}\u003cbr\u003escore=%{y}\u003cextra\u003e\u003c\u002fextra\u003e","legendgroup":"unknown","marker":{"color":"#636efa","pattern":{"shape":""}},"name":"unknown","offsetgroup":"unknown","orientation":"v","showlegend":true,"textposition":"auto","x":[11272270,19946345,98715752,94663332,94733964,98714597,94732351,98711851,98710965,98491252,228736379,94733953,94663152,96558778,94663125,98493205,98717771,98718832,117178506,98718817],"xaxis":"x","y":[0.012614024484495452,0.012323760154144556,0.01113797942153653,0.010908227418645937,0.01081372356466878,0.010588591078901059,0.010154288060476078,0.009812202412998112,0.009689899650617935,0.009432378320543599,0.009154633049575972,0.008773009139379354,0.008714710735381341,0.00838122025169122,0.007695232921752154,0.007467252297577243,0.0065178219324813595,0.0064859258012944475,0.006264818135289102,0.005567003896678385],"yaxis":"y","type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmapgl":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmapgl"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"txId"}},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"score"}},"legend":{"title":{"text":"class"},"tracegroupgap":0},"title":{"text":"Top 20 Riskiest Nodes"},"barmode":"relative"},                        {"responsive": true}                    )                };                            </script>        </div></div><div class="glass-card"><div>                            <div id="8fc5b52c-b72c-4b6b-a4b4-2a8ee86141ad" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script type="text/javascript">                                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("8fc5b52c-b72c-4b6b-a4b4-2a8ee86141ad")) {                    Plotly.newPlot(                        "8fc5b52c-b72c-4b6b-a4b4-2a8ee86141ad",                        [{"alignmentgroup":"True","hovertemplate":"class=licit\u003cbr\u003etimestep=%{x}\u003cbr\u003ecount=%{y}\u003cextra\u003e\u003c\u002fextra\u003e","legendgroup":"licit","marker":{"color":"#636efa","pattern":{"shape":""}},"name":"licit","offsetgroup":"licit","orientation":"v","showlegend":true,"textposition":"auto","x":[1,2,5,6,9,10,11,13,17,19,20,21,23,24,31,35,40,42,45],"xaxis":"x","y":[3,2,2,2,1,3,3,4,4,2,2,1,2,4,8,1,1,1,4],"yaxis":"y","type":"bar"},{"alignmentgroup":"True","hovertemplate":"class=unknown\u003cbr\u003etimestep=%{x}\u003cbr\u003ecount=%{y}\u003cextra\u003e\u003c\u002fextra\u003e","legendgroup":"unknown","marker":{"color":"#EF553B","pattern":{"shape":""}},"name":"unknown","offsetgroup":"unknown","orientation":"v","showlegend":true,"textposition":"auto","x":[2,6,7,9,10,11,13,17,19,20,21,23,24,28,31,33,35,36,40,41,42,43,44,45,46],"xaxis":"x","y":[3,8,32,4,2,4,5,1,14,6,2,9,2,2,9,6,1,3,3,4,3,3,3,3,5],"yaxis":"y","type":"bar"},{"alignmentgroup":"True","hovertemplate":"class=illicit\u003cbr\u003etimestep=%{x}\u003cbr\u003ecount=%{y}\u003cextra\u003e\u003c\u002fextra\u003e","legendgroup":"illicit","marker":{"color":"#00cc96","pattern":{"shape":""}},"name":"illicit","offsetgroup":"illicit","orientation":"v","showlegend":true,"textposition":"auto","x":[19,23],"xaxis":"x","y":[1,2],"yaxis":"y","type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmapgl":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmapgl"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"timestep"}},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"count"}},"legend":{"title":{"text":"class"},"tracegroupgap":0},"title":{"text":"Transaction Velocity"},"barmode":"relative"},                        {"responsive": true}                    )                };                            </script>        </div></div></div></div></div></body></html>
