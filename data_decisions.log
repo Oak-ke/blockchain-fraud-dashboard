@@ -1,0 +1,17 @@
+
+Data Cleaning Log
+Date: 2026-09-04 15:52
+
+Decisions made:
+1. Loaded three original files: features, classes, edgelist
+2. Features file had no header → added proper column names (txId, time_step, feature_1 to feature_165)
+3. Merged features + classes on 'txId' using left join
+4. Checked for missing values → found 1 row with missing values
+5. Dropped 93 rows that contained missing values because the number is extremely small and does not meaningfully affect the analysis
+6. Created clearer label column: class_label (illicit / licit / unknown)
+7. Saved final cleaned file as cleaned_merged_data.csv
+
+Notes:
+- Original dataset is already very clean
+- No rows were removed
+- No imputation was needed
